@@ -1,43 +1,16 @@
 package main
 
 import (
-	"os"
-
-	"github.com/boltdb/bolt"
+	"github.com/boltdb/bolt/bench"
 )
 
 // Run benchmarks on a given dataset.
-func Bench() {
-	path := "bench"
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		fatal(err)
-		return
-	}
-
-	db, err := bolt.Open(path, 0600)
+func Bench(path string) {
+	b, err := bench.New(path)
 	if err != nil {
 		fatal(err)
-		return
 	}
-	defer db.Close()
-
-	bucketName := "widgets"
-	key := "key1"
-	value := "value1"
-
-	err = db.Update(func(tx *bolt.Tx) error {
-		// Find bucket.
-		b := tx.Bucket(bucketName)
-		if b == nil {
-			fatalf("bucket not found: %s", bucketName)
-			return nil
-		}
-
-		// Set value for a given key.
-		return b.Put([]byte(key), []byte(value))
-	})
-	if err != nil {
+	if err := b.Run(); err != nil {
 		fatal(err)
-		return
 	}
 }
