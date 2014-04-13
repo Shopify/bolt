@@ -15,7 +15,7 @@ type Benchmark struct {
 }
 
 func New(filePath string) (*Benchmark, error) {
-	return readFromFile(filePath)
+	data := readFromFile(filePath)
 }
 
 func readFromFile(filePath string) (*Benchmark, error) {
