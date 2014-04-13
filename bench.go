@@ -67,7 +67,9 @@ func (bm *Benchmark) runBuckets(b *testing.B, db *DB, bucketsWithKeys map[string
 		count := 0
 		for bucket, keys := range bucketsWithKeys {
 			bucket := tx.Bucket([]byte(bucket))
-			bm.runKeys(b, bucket, keys)
+			if err := bm.runKeys(b, bucket, keys); err != nil {
+				return err
+			}
 			count++
 		}
 		if count != bucketsCount {
