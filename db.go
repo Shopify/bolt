@@ -129,6 +129,8 @@ func Open(path string, mode os.FileMode) (*DB, error) {
 // mmap opens the underlying memory-mapped file and initializes the meta references.
 // minsz is the minimum size that the new mmap can be.
 func (db *DB) mmap(minsz int) error {
+	_assert(minsz >= 0, "mmap request with negative minsz (%d)", minsz)
+
 	db.mmaplock.Lock()
 	defer db.mmaplock.Unlock()
 
@@ -605,6 +607,8 @@ func (db *DB) meta() *meta {
 
 // allocate returns a contiguous block of memory starting at a given page.
 func (db *DB) allocate(count int) (*page, error) {
+	_assert(count > 0, "allocate request with negative count (%d)", count)
+
 	// Allocate a temporary buffer for the page.
 	buf := make([]byte, count*db.pageSize)
 	p := (*page)(unsafe.Pointer(&buf[0]))

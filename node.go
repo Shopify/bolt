@@ -88,6 +88,8 @@ func (n *node) prevSibling() *node {
 
 // put inserts a key/value.
 func (n *node) put(oldKey, newKey, value []byte, pgid pgid, flags uint32) {
+	_assert(pgid < n.bucket.tx.meta.pgid, "pgid (%d) above high water mark (%d)", pgid, n.bucket.tx.meta.pgid)
+
 	// Find insertion index.
 	index := sort.Search(len(n.inodes), func(i int) bool { return bytes.Compare(n.inodes[i].key, oldKey) != -1 })
 
@@ -175,6 +177,7 @@ func (n *node) write(p *page) {
 			elem.pos = uint32(uintptr(unsafe.Pointer(&b[0])) - uintptr(unsafe.Pointer(elem)))
 			elem.ksize = uint32(len(item.key))
 			elem.pgid = item.pgid
+			_assert(elem.pgid < n.bucket.tx.meta.pgid, "pgid (%d) above high water mark (%d)", elem.pgid, n.bucket.tx.meta.pgid)
 		}
 
 		// Write data for the element to the end of the page.

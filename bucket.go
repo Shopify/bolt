@@ -147,6 +147,7 @@ func (b *Bucket) CreateBucket(key []byte) (*Bucket, error) {
 		return nil, err
 	}
 	p.flags = leafPageFlag
+	_assert(p.id < b.tx.meta.pgid, "pgid (%d) above high water mark (%d)", p.id, b.tx.meta.pgid)
 
 	// Insert key/value.
 	value := make([]byte, unsafe.Sizeof(bucket{}))
@@ -421,6 +422,7 @@ func (b *Bucket) spill() error {
 			if err != nil {
 				return err
 			}
+			_assert(p.id < b.tx.meta.pgid, "pgid (%d) above high water mark (%d)", p.id, b.tx.meta.pgid)
 
 			// Write the node to the page.
 			newNode.write(p)
@@ -452,6 +454,7 @@ func (b *Bucket) spill() error {
 
 	// Update the root node for this bucket.
 	b.root = nodes[len(nodes)-1].pgid
+	_assert(b.root < b.tx.meta.pgid, "pgid (%d) above high water mark (%d)", b.root, b.tx.meta.pgid)
 
 	return nil
 }
