@@ -109,11 +109,17 @@ func (b *Bucket) Bucket(name []byte) *Bucket {
 	}
 
 	// Otherwise create a bucket and cache it.
+	var child = b.openBucket(v)
+	b.buckets[string(name)] = child
+	return child
+}
+
+// Helper method that re-interprets a sub-bucket value
+// from a parent into a Bucket
+func (b *Bucket) openBucket(value []byte) *Bucket {
 	var child = newBucket(b.tx)
 	child.bucket = &bucket{}
-	*child.bucket = *(*bucket)(unsafe.Pointer(&v[0]))
-	b.buckets[string(name)] = &child
-
+	*child.bucket = *(*bucket)(unsafe.Pointer(&value[0]))
 	return &child
 }
 
@@ -333,7 +339,7 @@ func (b *Bucket) ForEach(fn func(k, v []byte) error) error {
 
 // Stat returns stats on a bucket.
 func (b *Bucket) Stats() BucketStats {
-	var s BucketStats
+	var s, subStats BucketStats
 	pageSize := b.tx.db.pageSize
 	b.tx.forEachPage(b.root, 0, func(p *page, depth int) {
 		if (p.flags & leafPageFlag) != 0 {
@@ -344,6 +350,13 @@ func (b *Bucket) Stats() BucketStats {
 			used += int(lastElement.pos + lastElement.ksize + lastElement.vsize)
 			s.LeafInuse += used
 			s.LeafOverflowN += int(p.overflow)
+
+			// Recurse into sub-buckets
+			for _, e := range p.leafPageElements() {
+				if e.flags&bucketLeafFlag != 0 {
+					subStats.Add(b.openBucket(e.value()).Stats())
+				}
+			}
 		} else if (p.flags & branchPageFlag) != 0 {
 			s.BranchPageN++
 			lastElement := p.branchPageElement(p.count - 1)
@@ -359,6 +372,10 @@ func (b *Bucket) Stats() BucketStats {
 	})
 	s.BranchAlloc = (s.BranchPageN + s.BranchOverflowN) * pageSize
 	s.LeafAlloc = (s.LeafPageN + s.LeafOverflowN) * pageSize
+
+	// add the max depth of sub-buckets to get total nested depth
+	s.Depth += subStats.Depth
+	s.Add(subStats)
 	return s
 }
 
@@ -537,6 +554,21 @@ type BucketStats struct {
 	BranchInuse int // bytes actually used for branch data
 	LeafAlloc   int // bytes allocated for physical leaf pages
 	LeafInuse   int // bytes actually used for leaf data
+}
+
+func (s *BucketStats) Add(other BucketStats) {
+	s.BranchPageN += other.BranchPageN
+	s.BranchOverflowN += other.BranchOverflowN
+	s.LeafPageN += other.LeafPageN
+	s.LeafOverflowN += other.LeafOverflowN
+	s.KeyN += s.KeyN
+	if s.Depth < other.Depth {
+		s.Depth = other.Depth
+	}
+	s.BranchAlloc += other.BranchAlloc
+	s.BranchInuse += other.BranchInuse
+	s.LeafAlloc += other.LeafAlloc
+	s.LeafInuse += other.LeafInuse
 }
 
 // cloneBytes returns a copy of a given slice.
