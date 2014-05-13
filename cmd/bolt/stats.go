@@ -46,10 +46,16 @@ func Stats(path, prefix string) {
 
 		println("Page size utilization")
 		printf("\tBytes allocated for physical branch pages: %d\n", s.BranchAlloc)
-		percentage := int(float32(s.BranchInuse) * 100.0 / float32(s.BranchAlloc))
+		var percentage int
+		if s.BranchAlloc != 0 {
+			percentage = int(float32(s.BranchInuse) * 100.0 / float32(s.BranchAlloc))
+		}
 		printf("\tBytes actually used for branch data: %d (%d%%)\n", s.BranchInuse, percentage)
 		printf("\tBytes allocated for physical leaf pages: %d\n", s.LeafAlloc)
-		percentage = int(float32(s.LeafInuse) * 100.0 / float32(s.LeafAlloc))
+		percentage = 0
+		if s.LeafAlloc != 0 {
+			percentage = int(float32(s.LeafInuse) * 100.0 / float32(s.LeafAlloc))
+		}
 		printf("\tBytes actually used for leaf data: %d (%d%%)\n", s.LeafInuse, percentage)
 		return nil
 	})

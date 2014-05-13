@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/boltdb/bolt"
@@ -9,6 +10,9 @@ import (
 )
 
 func TestStats(t *testing.T) {
+	if os.Getpagesize() != 4096 {
+		t.Skip()
+	}
 	SetTestMode(true)
 	open(func(db *bolt.DB, path string) {
 		db.Update(func(tx *bolt.Tx) error {
@@ -30,8 +34,8 @@ func TestStats(t *testing.T) {
 			"\tNumber of levels in B+tree: 0\n"+
 			"Page size utilization\n"+
 			"\tBytes allocated for physical branch pages: 0\n"+
-			"\tBytes actually used for branch data: 0\n"+
+			"\tBytes actually used for branch data: 0 (0%)\n"+
 			"\tBytes allocated for physical leaf pages: 8192\n"+
-			"\tBytes actually used for leaf data: 0", output)
+			"\tBytes actually used for leaf data: 0 (0%)", output)
 	})
 }
